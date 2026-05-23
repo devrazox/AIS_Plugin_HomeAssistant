@@ -219,6 +219,13 @@ class AISCoordinator(DataUpdateCoordinator):
         if mmsi not in self.vessels:
             self.vessels[mmsi] = {}
         self.vessels[mmsi].update({k: v for k, v in update.items() if v is not None})
+        custom = next(
+            (v["custom_name"] for v in self.entry.data.get(CONF_VESSELS, [])
+             if str(v["mmsi"]) == mmsi and v.get("custom_name")),
+            None,
+        )
+        if custom:
+            self.vessels[mmsi]["name"] = custom
         self.async_set_updated_data(self.vessels)
 
     # ------------------------------------------------------------------

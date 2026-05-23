@@ -76,6 +76,19 @@
           "selected_vessel": "Suchergebnis"
         }
       },
+      "rename_select": {
+        "title": "Schiff umbenennen",
+        "data": {
+          "vessel_to_rename": "Schiff"
+        }
+      },
+      "rename_input": {
+        "title": "Neuen Namen eingeben",
+        "description": "MMSI: {mmsi}",
+        "data": {
+          "new_name": "Name"
+        }
+      },
       "remove_vessel": {
         "title": "Schiff entfernen",
         "data": {

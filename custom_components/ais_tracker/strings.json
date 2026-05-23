@@ -76,6 +76,19 @@
           "selected_vessel": "Search result"
         }
       },
+      "rename_select": {
+        "title": "Rename vessel",
+        "data": {
+          "vessel_to_rename": "Vessel"
+        }
+      },
+      "rename_input": {
+        "title": "Enter new name",
+        "description": "MMSI: {mmsi}",
+        "data": {
+          "new_name": "Name"
+        }
+      },
       "remove_vessel": {
         "title": "Remove vessel",
         "data": {

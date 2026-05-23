@@ -291,22 +291,27 @@ class AISOptionsFlow(config_entries.OptionsFlow):
         self._entry = entry
         self._vessels: list[dict] = list(entry.data.get(CONF_VESSELS, []))
         self._search_results: list[dict] = []
+        self._rename_mmsi: str = ""
 
     async def async_step_init(self, user_input: dict | None = None):
-        """Show current fleet, allow adding/removing vessels."""
+        """Show current fleet, allow adding/removing/renaming vessels."""
         if user_input is not None:
             action = user_input.get("action")
             if action == "add":
                 return await self.async_step_vessel_search()
             if action == "remove":
                 return await self.async_step_remove_vessel()
+            if action == "rename":
+                return await self.async_step_rename_select()
             # save
             new_data = dict(self._entry.data)
             new_data[CONF_VESSELS] = self._vessels
             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
             return self.async_create_entry(title="", data={})
 
-        vessel_list = "\n".join(f"• {v['name']} ({v['mmsi']})" for v in self._vessels) or "–"
+        vessel_list = "\n".join(
+            f"• {v.get('custom_name') or v['name']} ({v['mmsi']})" for v in self._vessels
+        ) or "–"
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
@@ -315,6 +320,7 @@ class AISOptionsFlow(config_entries.OptionsFlow):
                         options=[
                             {"value": "save", "label": "Speichern"},
                             {"value": "add", "label": "Schiff hinzufügen"},
+                            {"value": "rename", "label": "Schiff umbenennen"},
                             {"value": "remove", "label": "Schiff entfernen"},
                         ],
                         mode=selector.SelectSelectorMode.LIST,
@@ -369,6 +375,47 @@ class AISOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.LIST)
                 ),
             }),
+        )
+
+    async def async_step_rename_select(self, user_input: dict | None = None):
+        if user_input is not None:
+            self._rename_mmsi = user_input["vessel_to_rename"]
+            return await self.async_step_rename_input()
+
+        options = [
+            {"value": v["mmsi"], "label": f"{v.get('custom_name') or v['name']} ({v['mmsi']})"}
+            for v in self._vessels
+        ]
+        if not options:
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="rename_select",
+            data_schema=vol.Schema({
+                vol.Required("vessel_to_rename"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.LIST)
+                ),
+            }),
+        )
+
+    async def async_step_rename_input(self, user_input: dict | None = None):
+        vessel = next((v for v in self._vessels if v["mmsi"] == self._rename_mmsi), None)
+        if not vessel:
+            return await self.async_step_init()
+
+        if user_input is not None:
+            new_name = user_input["new_name"].strip()
+            if new_name:
+                vessel["custom_name"] = new_name
+            return await self.async_step_init()
+
+        current_name = vessel.get("custom_name") or vessel["name"]
+        return self.async_show_form(
+            step_id="rename_input",
+            data_schema=vol.Schema({
+                vol.Required("new_name", default=current_name): str,
+            }),
+            description_placeholders={"mmsi": self._rename_mmsi},
         )
 
     async def async_step_remove_vessel(self, user_input: dict | None = None):

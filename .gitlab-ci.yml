@@ -1,6 +1,24 @@
-mirror-to-github:
+stages:
+  - lock
+  - mirror
+
+# Hält die resource_group für die gesamte Laufzeit der Pipeline.
+# Solange dieser Job läuft, blockiert er alle anderen Pipelines —
+# kein einziger Step von #895 startet, solange #894 aktiv ist.
+pipeline-lock:
+  stage: lock
   image: alpine:latest
   resource_group: master
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_TAG'
+  script:
+    - echo "Pipeline $CI_PIPELINE_ID acquired lock"
+
+mirror-to-github:
+  stage: mirror
+  image: alpine:latest
+  needs: [pipeline-lock]
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_COMMIT_TAG'

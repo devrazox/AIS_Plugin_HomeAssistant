@@ -73,6 +73,27 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - Kein "Generated with Claude Code", "AI-assisted" oder vergleichbare Formulierungen.
 - Commit-Messages und MR-Beschreibungen lesen sich als wären sie vom Entwickler selbst verfasst.
 
+## 6. Release-Workflow
+
+**Neues Release veröffentlichen:**
+
+```bash
+# 1. Version in manifest.json bumpen
+# 2. Committen, pushen, taggen:
+git add custom_components/ais_tracker/manifest.json
+git commit -m "release: bump version to X.X.X"
+git push origin master
+git tag vX.X.X
+git push origin vX.X.X
+```
+
+Die GitLab CI übernimmt dann automatisch:
+- Mirror des Branches nach GitHub
+- Mirror des Tags nach GitHub
+- Erstellung des GitHub Release (HACS-Update-Erkennung)
+
+**Kein manuelles GitHub Release nötig.**
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

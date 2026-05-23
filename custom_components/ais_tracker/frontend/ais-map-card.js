@@ -128,6 +128,7 @@ class AisMapCard extends HTMLElement {
     await loadScript(LEAFLET_JS);
 
     this.shadowRoot.innerHTML = `
+      <link rel="stylesheet" href="${LEAFLET_CSS}">
       <style>
         :host { display: block; }
         #map { width: 100%; height: ${this._config.height || "500px"}; border-radius: var(--ha-card-border-radius,12px); overflow:hidden; }

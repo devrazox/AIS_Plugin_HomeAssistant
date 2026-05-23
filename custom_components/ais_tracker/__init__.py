@@ -18,6 +18,7 @@ PLATFORMS = ["device_tracker", "sensor"]
 
 _FRONTEND_URL = "/ais_tracker/ais-map-card.js"
 _FRONTEND_FILE = Path(__file__).parent / "frontend" / "ais-map-card.js"
+_CACHE_TAG = int(_FRONTEND_FILE.stat().st_mtime)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -29,7 +30,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         StaticPathConfig("/ais_tracker/leaflet.css", str(_base / "leaflet.css"), cache_headers=True),
         StaticPathConfig("/ais_tracker/icon.svg",    str(Path(__file__).parent / "icon.svg"), cache_headers=True),
     ])
-    add_extra_js_url(hass, _FRONTEND_URL)
+    add_extra_js_url(hass, f"{_FRONTEND_URL}?v={_CACHE_TAG}")
     return True
 
 

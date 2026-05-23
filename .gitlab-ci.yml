@@ -7,7 +7,7 @@ mirror-to-github:
     - apk add --no-cache git
   script:
     - git remote add github https://oauth2:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${GITHUB_REPO}.git
-    - git push github HEAD:master --force
+    - git push github HEAD:refs/heads/master --force
     - git push github --tags --force
   variables:
     GIT_STRATEGY: clone

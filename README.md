@@ -17,23 +17,12 @@ Verfolge Schiffe in Echtzeit via [AISstream.io](https://aisstream.io) direkt in 
 ## Installation via HACS
 
 1. HACS → Einstellungen → **Custom Repositories**
-2. URL: `https://git.die-blecks.de/benjamin/AIS_Plugin_HomeAssistant`
+2. URL: `https://github.com/devrazox/AIS_Plugin_HomeAssistant`
 3. Typ: **Integration** → Hinzufügen
 4. HACS → Integrationen → **AIS Ship Tracker** → Installieren
 5. HA neu starten
 
-## Karte registrieren
-
-In `configuration.yaml`:
-
-```yaml
-lovelace:
-  resources:
-    - url: /local/ais-map-card/ais-map-card.js
-      type: module
-```
-
-Oder über Einstellungen → Dashboards → Ressourcen.
+Die OpenSeaMap-Karte wird **automatisch registriert** — kein Eintrag in `configuration.yaml` nötig.
 
 ## Karte konfigurieren
 

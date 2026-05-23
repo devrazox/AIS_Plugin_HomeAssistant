@@ -9,5 +9,5 @@ mirror-to-github:
     - git push github --tags --force
   variables:
     GIT_STRATEGY: clone
-    GITHUB_USER: "DEIN_GITHUB_USERNAME"
+    GITHUB_USER: "devrazox"
     GITHUB_REPO: "AIS_Plugin_HomeAssistant"

@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up AIS Ship Tracker",
+        "description": "Get a free API key from [aisstream.io]({url}) — no credit card required.",
+        "data": {
+          "api_key": "API Key"
+        }
+      },
+      "fleet_mode": {
+        "title": "Select fleet mode",
+        "data": {
+          "fleet_mode": "Mode"
+        }
+      },
+      "bounding_box": {
+        "title": "Define region",
+        "description": "Example: {example}",
+        "data": {
+          "min_lat": "Min latitude",
+          "min_lon": "Min longitude",
+          "max_lat": "Max latitude",
+          "max_lon": "Max longitude"
+        }
+      },
+      "vessel_search": {
+        "title": "Add vessel",
+        "description": "Current fleet: {current_fleet}",
+        "data": {
+          "search_query": "Search by ship name",
+          "mmsi_direct": "Enter MMSI directly"
+        }
+      },
+      "vessel_select": {
+        "title": "Select vessel",
+        "data": {
+          "selected_vessel": "Search result"
+        }
+      },
+      "vessel_confirm": {
+        "title": "Confirm fleet",
+        "description": "Current fleet:\n{vessel_list}",
+        "data": {
+          "action": "Action"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Invalid API key. Please check.",
+      "no_results": "No vessels found. Try a different name or enter MMSI directly."
+    },
+    "abort": {
+      "already_configured": "Integration is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage fleet",
+        "description": "Current fleet:\n{vessel_list}",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "vessel_search": {
+        "title": "Add vessel",
+        "data": {
+          "search_query": "Search by ship name",
+          "mmsi_direct": "Enter MMSI directly"
+        }
+      },
+      "vessel_select": {
+        "title": "Select vessel",
+        "data": {
+          "selected_vessel": "Search result"
+        }
+      },
+      "remove_vessel": {
+        "title": "Remove vessel",
+        "data": {
+          "vessel_to_remove": "Vessel"
+        }
+      }
+    },
+    "error": {
+      "no_results": "No vessels found."
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AIS Ship Tracker einrichten",
+        "description": "API-Schlüssel von [aisstream.io]({url}) holen (kostenlos, kein Kreditkarte).",
+        "data": {
+          "api_key": "API-Schlüssel"
+        }
+      },
+      "fleet_mode": {
+        "title": "Flottenmodus wählen",
+        "data": {
+          "fleet_mode": "Modus"
+        }
+      },
+      "bounding_box": {
+        "title": "Region festlegen",
+        "description": "Beispiel: {example}",
+        "data": {
+          "min_lat": "Min. Breitengrad",
+          "min_lon": "Min. Längengrad",
+          "max_lat": "Max. Breitengrad",
+          "max_lon": "Max. Längengrad"
+        }
+      },
+      "vessel_search": {
+        "title": "Schiff hinzufügen",
+        "description": "Aktuelle Flotte: {current_fleet}",
+        "data": {
+          "search_query": "Schiffsname suchen",
+          "mmsi_direct": "MMSI direkt eingeben"
+        }
+      },
+      "vessel_select": {
+        "title": "Schiff auswählen",
+        "data": {
+          "selected_vessel": "Suchergebnis"
+        }
+      },
+      "vessel_confirm": {
+        "title": "Flotte bestätigen",
+        "description": "Aktuelle Flotte:\n{vessel_list}",
+        "data": {
+          "action": "Aktion"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Ungültiger API-Schlüssel. Bitte prüfen.",
+      "no_results": "Keine Schiffe gefunden. Anderen Namen versuchen oder MMSI direkt eingeben."
+    },
+    "abort": {
+      "already_configured": "Integration ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Flotte verwalten",
+        "description": "Aktuelle Flotte:\n{vessel_list}",
+        "data": {
+          "action": "Aktion"
+        }
+      },
+      "vessel_search": {
+        "title": "Schiff hinzufügen",
+        "data": {
+          "search_query": "Schiffsname suchen",
+          "mmsi_direct": "MMSI direkt eingeben"
+        }
+      },
+      "vessel_select": {
+        "title": "Schiff auswählen",
+        "data": {
+          "selected_vessel": "Suchergebnis"
+        }
+      },
+      "remove_vessel": {
+        "title": "Schiff entfernen",
+        "data": {
+          "vessel_to_remove": "Schiff"
+        }
+      }
+    },
+    "error": {
+      "no_results": "Keine Schiffe gefunden."
+    }
+  }
+}

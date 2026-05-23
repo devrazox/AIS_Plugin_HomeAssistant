@@ -36,9 +36,12 @@ async def _async_register_lovelace(hass: HomeAssistant, _event=None) -> None:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     _LOGGER.info("AIS Ship Tracker wird gestartet")
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False)]
-    )
+    _base = Path(__file__).parent / "frontend"
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False),
+        StaticPathConfig("/ais_tracker/leaflet.js",  str(_base / "leaflet.js"),  cache_headers=True),
+        StaticPathConfig("/ais_tracker/leaflet.css", str(_base / "leaflet.css"), cache_headers=True),
+    ])
 
     if hass.is_running:
         await _async_register_lovelace(hass)

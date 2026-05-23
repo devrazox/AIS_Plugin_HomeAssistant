@@ -14,8 +14,8 @@
  *     - device_tracker.ais_123456789_tracker
  */
 
-const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-const LEAFLET_JS  = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const LEAFLET_CSS = "/ais_tracker/leaflet.css";
+const LEAFLET_JS  = "/ais_tracker/leaflet.js";
 
 const OSM_TILE   = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSEA_TILE  = "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png";
@@ -145,6 +145,9 @@ class AisMapCard extends HTMLElement {
 
     L.tileLayer(OSM_TILE,  { attribution: OSM_ATTR,  maxZoom: 19 }).addTo(this._map);
     L.tileLayer(OSEA_TILE, { attribution: OSEA_ATTR, maxZoom: 19, opacity: 1 }).addTo(this._map);
+
+    // Shadow DOM container size is unknown to Leaflet on first render
+    setTimeout(() => this._map.invalidateSize(), 100);
 
     this._ready = true;
     if (this._hass) this._updateMarkers();

@@ -2,11 +2,11 @@
   "domain": "ais_tracker",
   "name": "AIS Ship Tracker",
   "version": "1.0.0",
-  "documentation": "https://git.die-blecks.de/benjamin/AIS_Plugin_HomeAssistant",
-  "issue_tracker": "https://git.die-blecks.de/benjamin/AIS_Plugin_HomeAssistant/-/issues",
+  "documentation": "https://github.com/devrazox/AIS_Plugin_HomeAssistant",
+  "issue_tracker": "https://github.com/devrazox/AIS_Plugin_HomeAssistant/issues",
   "requirements": ["websockets>=12.0"],
   "dependencies": [],
-  "codeowners": ["@benjamin"],
+  "codeowners": ["@devrazox"],
   "config_flow": true,
   "iot_class": "cloud_push"
 }

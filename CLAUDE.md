@@ -65,6 +65,14 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Git Commits & MR Messages
+
+**Keine KI-Attribution. Keine Hinweise auf Claude oder AI-Tools.**
+
+- Niemals `Co-Authored-By: Claude` oder ähnliches in Commit-Messages.
+- Kein "Generated with Claude Code", "AI-assisted" oder vergleichbare Formulierungen.
+- Commit-Messages und MR-Beschreibungen lesen sich als wären sie vom Entwickler selbst verfasst.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

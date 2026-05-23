@@ -164,21 +164,27 @@ class AISCoordinator(DataUpdateCoordinator):
             try:
                 async with websockets.connect(AISSTREAM_WS_URL, ssl=ssl_context) as ws:
                     await ws.send(json.dumps(subscribe_msg))
-                    _LOGGER.debug("AISstream connected")
+                    _LOGGER.info("AISstream WebSocket verbunden")
                     async for raw in ws:
                         if self._stop_event.is_set():
                             break
                         try:
                             msg = json.loads(raw)
-                            # Inject API key ack is in first message
                             vessel = _parse_ais_message(msg)
                             if vessel:
+                                is_new = vessel["mmsi"] not in self.vessels
                                 self._merge_vessel(vessel)
+                                if is_new:
+                                    _LOGGER.info(
+                                        "Neues Schiff erkannt: %s (MMSI %s)",
+                                        vessel.get("name", vessel["mmsi"]),
+                                        vessel["mmsi"],
+                                    )
                         except Exception:
-                            _LOGGER.exception("Error parsing AIS message")
+                            _LOGGER.exception("Fehler beim Verarbeiten einer AIS-Nachricht")
             except Exception as exc:
                 if not self._stop_event.is_set():
-                    _LOGGER.warning("AISstream disconnected: %s — reconnecting in 15s", exc)
+                    _LOGGER.warning("AISstream getrennt: %s — Neuverbindung in 15s", exc)
                     await asyncio.sleep(15)
 
     def _build_subscribe_msg(self) -> dict:

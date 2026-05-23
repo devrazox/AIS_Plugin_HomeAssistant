@@ -27,12 +27,15 @@ async def _async_register_lovelace(hass: HomeAssistant, _event=None) -> None:
         await resources.async_load()
         if not any(r.get("url") == _FRONTEND_URL for r in resources.async_items()):
             await resources.async_create_item({"res_type": "module", "url": _FRONTEND_URL})
-            _LOGGER.info("AIS map card registered as Lovelace resource — reload your browser")
+            _LOGGER.info("OpenSeaMap-Karte als Lovelace-Ressource registriert — Browser neu laden")
+        else:
+            _LOGGER.debug("Lovelace-Ressource bereits vorhanden")
     except Exception as err:
-        _LOGGER.warning("Could not register AIS map card as Lovelace resource: %s", err)
+        _LOGGER.warning("Lovelace-Ressource konnte nicht registriert werden: %s", err)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    _LOGGER.info("AIS Ship Tracker wird gestartet")
     await hass.http.async_register_static_paths(
         [StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False)]
     )
@@ -46,6 +49,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    _LOGGER.info("AIS-Flotte '%s' wird geladen", entry.title)
     coordinator = AISCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 

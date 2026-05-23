@@ -1,7 +1,7 @@
 {
   "domain": "ais_tracker",
   "name": "AIS Ship Tracker",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "documentation": "https://github.com/devrazox/AIS_Plugin_HomeAssistant",
   "issue_tracker": "https://github.com/devrazox/AIS_Plugin_HomeAssistant/issues",
   "requirements": ["websockets>=12.0"],

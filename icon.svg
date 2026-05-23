@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="88" fill="#0B2545"/>
+
+  <!-- Water -->
+  <path d="M0 420 C85 404 170 432 256 420 C342 408 427 432 512 420 L512 512 L0 512 Z" fill="#0D3B6E"/>
+  <path d="M0 440 C85 428 170 452 256 440 C342 428 427 452 512 440 L512 512 L0 512 Z" fill="#1A237E" opacity="0.6"/>
+
+  <!-- ── Sailboat ── -->
+
+  <!-- Hull -->
+  <path d="M112 358 C162 374 222 379 282 364 L260 398 C212 412 158 408 120 394 Z"
+        fill="#ECEFF1"/>
+
+  <!-- Mast -->
+  <rect x="187" y="108" width="9" height="254" rx="4" fill="#ECEFF1"/>
+
+  <!-- Boom -->
+  <line x1="191" y1="322" x2="268" y2="364" stroke="#CFD8DC" stroke-width="5"
+        stroke-linecap="round"/>
+
+  <!-- Mainsail -->
+  <polygon points="191,122 191,358 112,358" fill="#FFFFFF"/>
+
+  <!-- Jib -->
+  <polygon points="196,158 196,342 272,362" fill="#90CAF9" opacity="0.88"/>
+
+  <!-- ── Tonne (Buoy) ── -->
+
+  <!-- Anchor chain -->
+  <line x1="376" y1="384" x2="372" y2="418" stroke="#546E7A"
+        stroke-width="3" stroke-dasharray="5,3"/>
+
+  <!-- Body -->
+  <rect x="350" y="318" width="52" height="66" rx="8" fill="#E64A19"/>
+
+  <!-- Top cap -->
+  <ellipse cx="376" cy="318" rx="26" ry="10" fill="#FF5722"/>
+
+  <!-- Bottom cap -->
+  <ellipse cx="376" cy="384" rx="26" ry="10" fill="#BF360C"/>
+
+  <!-- Yellow stripe -->
+  <rect x="350" y="332" width="52" height="14" fill="#FDD835"/>
+
+  <!-- Top mark stem -->
+  <rect x="370" y="292" width="12" height="26" rx="3" fill="#E64A19"/>
+
+  <!-- Top mark cone -->
+  <polygon points="376,270 366,294 386,294" fill="#FF7043"/>
+
+</svg>

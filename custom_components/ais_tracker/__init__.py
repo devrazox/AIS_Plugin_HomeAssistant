@@ -27,6 +27,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False),
         StaticPathConfig("/ais_tracker/leaflet.js",  str(_base / "leaflet.js"),  cache_headers=True),
         StaticPathConfig("/ais_tracker/leaflet.css", str(_base / "leaflet.css"), cache_headers=True),
+        StaticPathConfig("/ais_tracker/icon.svg",    str(Path(__file__).parent / "icon.svg"), cache_headers=True),
     ])
     add_extra_js_url(hass, _FRONTEND_URL)
     return True

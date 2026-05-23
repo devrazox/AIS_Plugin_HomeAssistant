@@ -1,5 +1,4 @@
 mirror-to-github:
-  stage: .post
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_COMMIT_TAG'

@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -20,26 +20,28 @@ _FRONTEND_URL = "/ais_tracker/ais-map-card.js"
 _FRONTEND_FILE = Path(__file__).parent / "frontend" / "ais-map-card.js"
 
 
-async def _async_register_card(hass: HomeAssistant) -> None:
-    """Register the Lovelace card via storage API, fall back to add_extra_js_url."""
+async def _async_register_lovelace(hass: HomeAssistant, _event=None) -> None:
+    """Register card as Lovelace resource. Called after HA is fully started."""
     try:
-        lovelace_resources = hass.data["lovelace"]["resources"]
-        await lovelace_resources.async_load()
-        if not any(r.get("url") == _FRONTEND_URL for r in lovelace_resources.async_items()):
-            await lovelace_resources.async_create_item(
-                {"res_type": "module", "url": _FRONTEND_URL}
-            )
-        _LOGGER.debug("AIS card registered as Lovelace resource")
-    except Exception:
-        add_extra_js_url(hass, _FRONTEND_URL)
-        _LOGGER.debug("AIS card registered via add_extra_js_url (fallback)")
+        resources = hass.data["lovelace"]["resources"]
+        await resources.async_load()
+        if not any(r.get("url") == _FRONTEND_URL for r in resources.async_items()):
+            await resources.async_create_item({"res_type": "module", "url": _FRONTEND_URL})
+            _LOGGER.info("AIS map card registered as Lovelace resource — reload your browser")
+    except Exception as err:
+        _LOGGER.warning("Could not register AIS map card as Lovelace resource: %s", err)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False)]
     )
-    await _async_register_card(hass)
+
+    if hass.is_running:
+        await _async_register_lovelace(hass)
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _async_register_lovelace)
+
     return True
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import ssl
 from datetime import timedelta
 from typing import Any
 
@@ -155,10 +156,13 @@ class AISCoordinator(DataUpdateCoordinator):
     async def _ws_loop(self) -> None:
         api_key = self.entry.data[CONF_API_KEY]
         subscribe_msg = self._build_subscribe_msg()
+        ssl_context = await asyncio.get_event_loop().run_in_executor(
+            None, ssl.create_default_context
+        )
 
         while not self._stop_event.is_set():
             try:
-                async with websockets.connect(AISSTREAM_WS_URL) as ws:
+                async with websockets.connect(AISSTREAM_WS_URL, ssl=ssl_context) as ws:
                     await ws.send(json.dumps(subscribe_msg))
                     _LOGGER.debug("AISstream connected")
                     async for raw in ws:

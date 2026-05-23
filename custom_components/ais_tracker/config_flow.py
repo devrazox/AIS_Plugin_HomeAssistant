@@ -46,6 +46,7 @@ async def _search_vessels(session: aiohttp.ClientSession, api_key: str, query: s
 
 
 import asyncio
+import ssl
 
 
 async def _validate_api_key(api_key: str) -> bool:
@@ -56,9 +57,13 @@ async def _validate_api_key(api_key: str) -> bool:
     means the key is wrong.
     """
     import websockets
+    # SSL context must be created in executor to avoid blocking the HA event loop
+    ssl_context = await asyncio.get_event_loop().run_in_executor(
+        None, ssl.create_default_context
+    )
     try:
         async with websockets.connect(
-            "wss://stream.aisstream.io/v0/stream", open_timeout=10
+            "wss://stream.aisstream.io/v0/stream", ssl=ssl_context, open_timeout=10
         ) as ws:
             await ws.send(json.dumps({
                 "APIKey": api_key,

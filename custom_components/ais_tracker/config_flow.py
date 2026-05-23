@@ -45,26 +45,37 @@ async def _search_vessels(session: aiohttp.ClientSession, api_key: str, query: s
     return []
 
 
-async def _validate_api_key(session: aiohttp.ClientSession, api_key: str) -> bool:
-    """Quick check: connect to AISstream and verify the key is accepted."""
+import asyncio
+
+
+async def _validate_api_key(api_key: str) -> bool:
+    """Verify API key by connecting to AISstream and checking for an error response.
+
+    A TimeoutError means the connection worked but no ships were in range —
+    that is a valid key. Only an explicit error message or a connection failure
+    means the key is wrong.
+    """
     import websockets
     try:
-        async with websockets.connect("wss://stream.aisstream.io/v0/stream") as ws:
+        async with websockets.connect(
+            "wss://stream.aisstream.io/v0/stream", open_timeout=10
+        ) as ws:
             await ws.send(json.dumps({
                 "APIKey": api_key,
                 "MessageTypes": ["PositionReport"],
                 "BoundingBoxes": [[[54.0, 8.0], [55.0, 9.0]]],
             }))
-            # First message: either data or error
-            raw = await asyncio.wait_for(ws.recv(), timeout=5)
-            msg = json.loads(raw)
-            # AISstream returns {"error": "..."} on bad key
-            return "error" not in msg
+            try:
+                raw = await asyncio.wait_for(ws.recv(), timeout=5)
+                msg = json.loads(raw)
+                # AISstream sends {"error": "..."} for bad keys
+                if isinstance(msg, dict) and "error" in msg:
+                    return False
+            except asyncio.TimeoutError:
+                pass  # No message = no ships in area, key is fine
+        return True
     except Exception:
         return False
-
-
-import asyncio
 
 
 class AISTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -83,8 +94,7 @@ class AISTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             api_key = user_input[CONF_API_KEY].strip()
-            session = async_get_clientsession(self.hass)
-            valid = await _validate_api_key(session, api_key)
+            valid = await _validate_api_key(api_key)
             if valid:
                 self._data[CONF_API_KEY] = api_key
                 return await self.async_step_fleet_mode()

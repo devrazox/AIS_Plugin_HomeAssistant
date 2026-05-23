@@ -137,9 +137,9 @@ class AisMapCard extends HTMLElement {
       </ha-card>`;
 
     const mapEl = this.shadowRoot.getElementById("map");
-    const lat  = this._config.lat  ?? 54.0;
-    const lon  = this._config.lon  ?? 10.0;
-    const zoom = this._config.zoom ?? 8;
+    const lat  = parseFloat(this._config.lat  ?? 54.0);
+    const lon  = parseFloat(this._config.lon  ?? 10.0);
+    const zoom = parseInt(this._config.zoom   ?? 8, 10);
 
     this._map = L.map(mapEl).setView([lat, lon], zoom);
 

@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
@@ -20,20 +20,6 @@ _FRONTEND_URL = "/ais_tracker/ais-map-card.js"
 _FRONTEND_FILE = Path(__file__).parent / "frontend" / "ais-map-card.js"
 
 
-async def _async_register_lovelace(hass: HomeAssistant, _event=None) -> None:
-    """Register card as Lovelace resource. Called after HA is fully started."""
-    try:
-        resources = hass.data["lovelace"]["resources"]
-        await resources.async_load()
-        if not any(r.get("url") == _FRONTEND_URL for r in resources.async_items()):
-            await resources.async_create_item({"res_type": "module", "url": _FRONTEND_URL})
-            _LOGGER.info("OpenSeaMap-Karte als Lovelace-Ressource registriert — Browser neu laden")
-        else:
-            _LOGGER.debug("Lovelace-Ressource bereits vorhanden")
-    except Exception as err:
-        _LOGGER.warning("Lovelace-Ressource konnte nicht registriert werden: %s", err)
-
-
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     _LOGGER.info("AIS Ship Tracker wird gestartet")
     _base = Path(__file__).parent / "frontend"
@@ -42,12 +28,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         StaticPathConfig("/ais_tracker/leaflet.js",  str(_base / "leaflet.js"),  cache_headers=True),
         StaticPathConfig("/ais_tracker/leaflet.css", str(_base / "leaflet.css"), cache_headers=True),
     ])
-
-    if hass.is_running:
-        await _async_register_lovelace(hass)
-    else:
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _async_register_lovelace)
-
+    add_extra_js_url(hass, _FRONTEND_URL)
     return True
 
 

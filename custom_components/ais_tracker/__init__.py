@@ -20,11 +20,26 @@ _FRONTEND_URL = "/ais_tracker/ais-map-card.js"
 _FRONTEND_FILE = Path(__file__).parent / "frontend" / "ais-map-card.js"
 
 
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Register the Lovelace card via storage API, fall back to add_extra_js_url."""
+    try:
+        lovelace_resources = hass.data["lovelace"]["resources"]
+        await lovelace_resources.async_load()
+        if not any(r.get("url") == _FRONTEND_URL for r in lovelace_resources.async_items()):
+            await lovelace_resources.async_create_item(
+                {"res_type": "module", "url": _FRONTEND_URL}
+            )
+        _LOGGER.debug("AIS card registered as Lovelace resource")
+    except Exception:
+        add_extra_js_url(hass, _FRONTEND_URL)
+        _LOGGER.debug("AIS card registered via add_extra_js_url (fallback)")
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_FILE), cache_headers=False)]
     )
-    add_extra_js_url(hass, _FRONTEND_URL)
+    await _async_register_card(hass)
     return True
 
 

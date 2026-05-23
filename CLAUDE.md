@@ -94,6 +94,8 @@ Die GitLab CI übernimmt dann automatisch:
 
 **Kein manuelles GitHub Release nötig.**
 
+**Wichtig:** Erst pushen, wenn alle Änderungen fertig sind. Kein Push zwischendurch.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

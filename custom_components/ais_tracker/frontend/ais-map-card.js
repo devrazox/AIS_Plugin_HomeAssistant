@@ -205,10 +205,6 @@ class AisMapCard extends HTMLElement {
     return 6;
   }
 
-  static getConfigElement() {
-    return document.createElement("ais-map-card-editor");
-  }
-
   static getStubConfig() {
     return { lat: 54.0, lon: 10.0, zoom: 8, height: "500px" };
   }

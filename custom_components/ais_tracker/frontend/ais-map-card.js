@@ -138,9 +138,13 @@ class AisMapCard extends HTMLElement {
       </ha-card>`;
 
     const mapEl = this.shadowRoot.getElementById("map");
-    const lat  = parseFloat(this._config.lat  ?? 54.0);
-    const lon  = parseFloat(this._config.lon  ?? 10.0);
-    const zoom = parseInt(this._config.zoom   ?? 8, 10);
+    const zoom = parseInt(this._config.zoom ?? 8, 10);
+
+    // If follow is set, center on ship if already available; otherwise fall back to lat/lon
+    let lat = parseFloat(this._config.lat ?? 54.0);
+    let lon = parseFloat(this._config.lon ?? 10.0);
+    const followPos = this._followPosition();
+    if (followPos) { lat = followPos[0]; lon = followPos[1]; }
 
     this._map = L.map(mapEl).setView([lat, lon], zoom);
 
@@ -152,6 +156,15 @@ class AisMapCard extends HTMLElement {
 
     this._ready = true;
     if (this._hass) this._updateMarkers();
+  }
+
+  _followPosition() {
+    if (!this._hass || !this._config.follow) return null;
+    const entity = this._hass.states[this._config.follow];
+    if (!entity) return null;
+    const lat = parseFloat(entity.attributes.latitude ?? entity.attributes.gps?.[0]);
+    const lon = parseFloat(entity.attributes.longitude ?? entity.attributes.gps?.[1]);
+    return (!isNaN(lat) && !isNaN(lon) && lat && lon) ? [lat, lon] : null;
   }
 
   _getTrackerEntities() {
@@ -203,6 +216,10 @@ class AisMapCard extends HTMLElement {
         delete this._markers[id];
       }
     }
+
+    // Follow mode: pan to ship on every update
+    const followPos = this._followPosition();
+    if (followPos) this._map.panTo(followPos);
   }
 
   getCardSize() {

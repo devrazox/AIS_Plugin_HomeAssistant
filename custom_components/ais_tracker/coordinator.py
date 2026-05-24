@@ -215,6 +215,8 @@ class AISCoordinator(DataUpdateCoordinator):
         self._ws_task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
         self._viewport_bbox: list | None = None
+        self._active_ws: Any = None
+        self._viewport_debounce_task: asyncio.Task | None = None
 
     # ------------------------------------------------------------------
     # DataUpdateCoordinator hook — called once on setup and on interval
@@ -236,13 +238,13 @@ class AISCoordinator(DataUpdateCoordinator):
     # WebSocket loop
     # ------------------------------------------------------------------
     async def _ws_loop(self) -> None:
-        api_key = self.entry.data[CONF_API_KEY]
-        subscribe_msg = self._build_subscribe_msg()
         ssl_context = await asyncio.get_event_loop().run_in_executor(
             None, ssl.create_default_context
         )
+        backoff = 15
 
         while not self._stop_event.is_set():
+            subscribe_msg = self._build_subscribe_msg()
             try:
                 async with websockets.connect(
                     AISSTREAM_WS_URL,
@@ -250,11 +252,13 @@ class AISCoordinator(DataUpdateCoordinator):
                     ping_interval=None,
                     ping_timeout=None,
                 ) as ws:
+                    self._active_ws = ws
                     await ws.send(json.dumps(subscribe_msg))
                     _LOGGER.info(
                         "AISstream verbunden — Subscription: %s",
                         {k: v for k, v in subscribe_msg.items() if k != "APIKey"},
                     )
+                    backoff = 15  # reset on successful connection
                     async for raw in ws:
                         if self._stop_event.is_set():
                             break
@@ -282,8 +286,12 @@ class AISCoordinator(DataUpdateCoordinator):
                             _LOGGER.exception("Fehler beim Verarbeiten einer AIS-Nachricht")
             except Exception as exc:
                 if not self._stop_event.is_set():
-                    _LOGGER.warning("AISstream getrennt: %s — Neuverbindung in 15s", exc)
-                    await asyncio.sleep(15)
+                    if "429" in str(exc):
+                        backoff = min(backoff * 2, 300)
+                    _LOGGER.warning("AISstream getrennt: %s — Neuverbindung in %ds", exc, backoff)
+                    await asyncio.sleep(backoff)
+            finally:
+                self._active_ws = None
 
     def _build_subscribe_msg(self) -> dict:
         api_key = self.entry.data[CONF_API_KEY]
@@ -317,7 +325,13 @@ class AISCoordinator(DataUpdateCoordinator):
 
         if mode == FLEET_MODE_LIST:
             vessels = self.entry.data.get(CONF_VESSELS, [])
-            msg["FiltersShipMMSI"] = [str(v["mmsi"]) for v in vessels]
+            mmsis = [str(v["mmsi"]) for v in vessels]
+            if len(mmsis) > 50:
+                _LOGGER.warning(
+                    "AISstream: MMSI-Filter auf 50 Einträge begrenzt (%d konfiguriert)", len(mmsis)
+                )
+                mmsis = mmsis[:50]
+            msg["FiltersShipMMSI"] = mmsis
 
         _LOGGER.debug("AISstream subscribe: %s", {k: v for k, v in msg.items() if k != "APIKey"})
         return msg
@@ -349,9 +363,27 @@ class AISCoordinator(DataUpdateCoordinator):
     # Dynamic viewport (called from map card via HA service)
     # ------------------------------------------------------------------
     def update_viewport(self, min_lat: float, min_lon: float, max_lat: float, max_lon: float) -> None:
-        """Update subscription bounding box to current map viewport and reconnect."""
         self._viewport_bbox = [[[min_lat, min_lon], [max_lat, max_lon]]]
-        _LOGGER.debug("Viewport aktualisiert: %s", self._viewport_bbox)
+        if self._viewport_debounce_task and not self._viewport_debounce_task.done():
+            self._viewport_debounce_task.cancel()
+        self._viewport_debounce_task = self.hass.async_create_background_task(
+            self._apply_viewport_update(), "ais_tracker_viewport_debounce"
+        )
+
+    async def _apply_viewport_update(self) -> None:
+        await asyncio.sleep(0.5)
+        subscribe_msg = self._build_subscribe_msg()
+        if self._active_ws is not None:
+            try:
+                await self._active_ws.send(json.dumps(subscribe_msg))
+                _LOGGER.debug(
+                    "Viewport re-subscribed: %s",
+                    {k: v for k, v in subscribe_msg.items() if k != "APIKey"},
+                )
+                return
+            except Exception:
+                _LOGGER.debug("Re-subscribe fehlgeschlagen, starte WS neu")
+        # No active connection or send failed — (re)start the loop
         if self._ws_task and not self._ws_task.done():
             self._ws_task.cancel()
         self._ws_task = self.hass.async_create_background_task(
@@ -369,5 +401,7 @@ class AISCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
     def async_stop(self) -> None:
         self._stop_event.set()
+        if self._viewport_debounce_task and not self._viewport_debounce_task.done():
+            self._viewport_debounce_task.cancel()
         if self._ws_task and not self._ws_task.done():
             self._ws_task.cancel()

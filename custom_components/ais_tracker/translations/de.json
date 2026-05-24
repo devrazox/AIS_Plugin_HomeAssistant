@@ -26,7 +26,7 @@
       },
       "vessel_search": {
         "title": "Schiff hinzufügen",
-        "description": "Aktuelle Flotte: {current_fleet}",
+        "description": "Aktuelle Flotte: {current_fleet}\n\n⚠ AISstream nutzt ausschließlich terrestrische Empfänger. Schiffe, die nur über Satelliten-AIS erfasst werden (Quelle „Roaming"), oder Fahrzeuge in Gebieten mit schlechter Abdeckung (Binnengewässer, Fjorde) erscheinen möglicherweise nicht.",
         "data": {
           "search_query": "Schiffsname suchen",
           "mmsi_direct": "MMSI direkt eingeben"

@@ -26,7 +26,7 @@
       },
       "vessel_search": {
         "title": "Add vessel",
-        "description": "Current fleet: {current_fleet}",
+        "description": "Current fleet: {current_fleet}\n\n⚠ AISstream uses terrestrial receivers only. Vessels with satellite-only AIS coverage (\"Roaming\" source) or in areas with poor terrestrial reception (inland waterways, fjords) may not appear.",
         "data": {
           "search_query": "Search by ship name",
           "mmsi_direct": "Enter MMSI directly"

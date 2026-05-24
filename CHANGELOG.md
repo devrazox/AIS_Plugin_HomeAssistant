@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.17
+### Fixed
+- Send both `MessageTypes` and `FilterMessageTypes` in subscription for maximum API compatibility
+- Log full subscription details (INFO) and AISstream error responses on connect
+- Log unknown message types at DEBUG level for easier diagnostics
+
 ## v1.0.16
 ### Fixed
 - WebSocket connection no longer drops every few minutes: disabled automatic ping/keepalive frames (`ping_interval=None`). AISstream does not respond to WebSocket pings, causing the library to close the connection with code 1011 after each timeout.

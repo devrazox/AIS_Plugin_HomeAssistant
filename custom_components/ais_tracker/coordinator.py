@@ -243,12 +243,18 @@ class AISCoordinator(DataUpdateCoordinator):
                     ping_timeout=None,
                 ) as ws:
                     await ws.send(json.dumps(subscribe_msg))
-                    _LOGGER.info("AISstream WebSocket verbunden")
+                    _LOGGER.info(
+                        "AISstream verbunden — Subscription: %s",
+                        {k: v for k, v in subscribe_msg.items() if k != "APIKey"},
+                    )
                     async for raw in ws:
                         if self._stop_event.is_set():
                             break
                         try:
                             msg = json.loads(raw)
+                            if isinstance(msg, dict) and "error" in msg:
+                                _LOGGER.error("AISstream Fehler: %s", msg["error"])
+                                break
                             vessel = _parse_ais_message(msg)
                             if vessel:
                                 is_new = vessel["mmsi"] not in self.vessels
@@ -259,6 +265,11 @@ class AISCoordinator(DataUpdateCoordinator):
                                         vessel.get("name", vessel["mmsi"]),
                                         vessel["mmsi"],
                                     )
+                            else:
+                                _LOGGER.debug(
+                                    "Unbekannter Nachrichtentyp: %s",
+                                    msg.get("MessageType"),
+                                )
                         except Exception:
                             _LOGGER.exception("Fehler beim Verarbeiten einer AIS-Nachricht")
             except Exception as exc:
@@ -281,6 +292,7 @@ class AISCoordinator(DataUpdateCoordinator):
 
         msg: dict[str, Any] = {
             "APIKey": api_key,
+            "MessageTypes": _filter_types,
             "FilterMessageTypes": _filter_types,
         }
 

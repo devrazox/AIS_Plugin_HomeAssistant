@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.18
+### Fixed
+- Removed server-side MMSI filter from WebSocket subscription — AISstream drops the connection when the `MMSI` field is present (not supported on free tier). MMSI filtering for LIST mode is now done in the integration code instead.
+- Removed duplicate `FilterMessageTypes` field; `MessageTypes` is sufficient and confirmed working.
+
 ## v1.0.17
 ### Fixed
 - Send both `MessageTypes` and `FilterMessageTypes` in subscription for maximum API compatibility

@@ -87,11 +87,12 @@ def _parse_ais_message(msg: dict) -> dict[str, Any] | None:
 
     if msg_type == "PositionReport":
         data = msg.get("Message", {}).get("PositionReport", {})
+        heading = data.get("TrueHeading")
         vessel.update({
-            "sog": data.get("Sog"),                          # Speed over Ground (knots)
-            "cog": data.get("Cog"),                          # Course over Ground (°)
-            "true_heading": data.get("TrueHeading"),         # True Heading (°)
-            "rot": data.get("RateOfTurn"),                   # Rate of Turn
+            "sog": data.get("Sog"),
+            "cog": data.get("Cog"),
+            "true_heading": heading if heading != 511 else None,
+            "rot": data.get("RateOfTurn"),
             "nav_status_code": data.get("NavigationalStatus"),
             "nav_status": NAV_STATUS.get(data.get("NavigationalStatus", 15), "Unknown"),
             "latitude": data.get("Latitude") or vessel["latitude"],
@@ -108,7 +109,7 @@ def _parse_ais_message(msg: dict) -> dict[str, Any] | None:
             "ship_type_code": data.get("Type"),
             "ship_type": _parse_ship_type(data.get("Type", 0)),
             "destination": data.get("Destination", "").strip(),
-            "draught": data.get("MaximumStaticDraught"),     # Tiefgang (m)
+            "draught": data.get("MaximumStaticDraught"),
             "length": (dim.get("A", 0) or 0) + (dim.get("B", 0) or 0),
             "beam": (dim.get("C", 0) or 0) + (dim.get("D", 0) or 0),
             "eta_month": eta.get("Month"),
@@ -121,6 +122,79 @@ def _parse_ais_message(msg: dict) -> dict[str, Any] | None:
                 f"{vessel['eta_month']:02d}-{vessel['eta_day']:02d} "
                 f"{vessel['eta_hour']:02d}:{vessel['eta_minute']:02d}"
             )
+
+    # Class B transponder (recreational vessels, pleasure craft)
+    elif msg_type == "StandardClassBPositionReport":
+        data = msg.get("Message", {}).get("StandardClassBPositionReport", {})
+        heading = data.get("TrueHeading")
+        sog = data.get("Sog")
+        cog = data.get("Cog")
+        vessel.update({
+            "sog": sog if sog != 102.3 else None,
+            "cog": cog if cog != 360.0 else None,
+            "true_heading": heading if heading != 511 else None,
+            "latitude": data.get("Latitude") or vessel["latitude"],
+            "longitude": data.get("Longitude") or vessel["longitude"],
+        })
+
+    elif msg_type == "StandardClassBCSStaticAndVoyageRelatedData":
+        data = msg.get("Message", {}).get("StandardClassBCSStaticAndVoyageRelatedData", {})
+        name = data.get("Name", "").strip()
+        if name:
+            vessel["name"] = name
+        callsign = data.get("CallSign", "").strip()
+        if callsign:
+            vessel["callsign"] = callsign
+        type_code = data.get("TypeOfShipAndCargoType")
+        if type_code is not None:
+            vessel["ship_type_code"] = type_code
+            vessel["ship_type"] = _parse_ship_type(type_code)
+        dim = data.get("Dimension", {})
+        if dim:
+            vessel["length"] = (dim.get("A", 0) or 0) + (dim.get("B", 0) or 0)
+            vessel["beam"] = (dim.get("C", 0) or 0) + (dim.get("D", 0) or 0)
+
+    # Class B extended (Type 19) — position + static combined
+    elif msg_type == "ExtendedClassBPositionReport":
+        data = msg.get("Message", {}).get("ExtendedClassBPositionReport", {})
+        heading = data.get("TrueHeading")
+        sog = data.get("Sog")
+        cog = data.get("Cog")
+        vessel.update({
+            "sog": sog if sog != 102.3 else None,
+            "cog": cog if cog != 360.0 else None,
+            "true_heading": heading if heading != 511 else None,
+            "latitude": data.get("Latitude") or vessel["latitude"],
+            "longitude": data.get("Longitude") or vessel["longitude"],
+        })
+        name = data.get("Name", "").strip()
+        if name:
+            vessel["name"] = name
+        type_code = data.get("TypeOfShipAndCargoType")
+        if type_code is not None:
+            vessel["ship_type_code"] = type_code
+            vessel["ship_type"] = _parse_ship_type(type_code)
+        dim = data.get("Dimension", {})
+        if dim:
+            vessel["length"] = (dim.get("A", 0) or 0) + (dim.get("B", 0) or 0)
+            vessel["beam"] = (dim.get("C", 0) or 0) + (dim.get("D", 0) or 0)
+
+    # Long-range AIS broadcast (Type 27) — simplified position
+    elif msg_type == "LongRangeAISBroadcastMessage":
+        data = msg.get("Message", {}).get("LongRangeAISBroadcastMessage", {})
+        sog = data.get("Sog")
+        cog = data.get("Cog")
+        vessel.update({
+            "sog": sog if sog != 63 else None,
+            "cog": cog if cog != 511 else None,
+            "nav_status_code": data.get("NavigationalStatus"),
+            "nav_status": NAV_STATUS.get(data.get("NavigationalStatus", 15), "Unknown"),
+            "latitude": data.get("Latitude") or vessel["latitude"],
+            "longitude": data.get("Longitude") or vessel["longitude"],
+        })
+
+    else:
+        return None
 
     return vessel
 
@@ -193,14 +267,19 @@ class AISCoordinator(DataUpdateCoordinator):
 
         msg: dict[str, Any] = {
             "APIKey": api_key,
-            "MessageTypes": ["PositionReport", "ShipStaticData"],
+            "FilterMessageTypes": [
+                "PositionReport",
+                "ShipStaticData",
+                "StandardClassBPositionReport",
+                "ExtendedClassBPositionReport",
+                "StandardClassBCSStaticAndVoyageRelatedData",
+                "LongRangeAISBroadcastMessage",
+            ],
         }
 
         if mode == FLEET_MODE_LIST:
             vessels = self.entry.data.get(CONF_VESSELS, [])
-            mmsi_list = [v["mmsi"] for v in vessels]
-            msg["FilterMessageTypes"] = ["PositionReport", "ShipStaticData"]
-            msg["MMSI"] = mmsi_list
+            msg["MMSI"] = [int(v["mmsi"]) for v in vessels]
 
         elif mode == FLEET_MODE_REGION:
             bbox = self.entry.data.get(CONF_BOUNDING_BOX, {})
@@ -209,7 +288,7 @@ class AISCoordinator(DataUpdateCoordinator):
                 [bbox.get("max_lat", 90), bbox.get("max_lon", 180)],
             ]]
 
-        # FLEET_MODE_GLOBAL: no filter, receive everything
+        # FLEET_MODE_GLOBAL: no BoundingBoxes / MMSI filter, receive all ships
 
         return msg
 

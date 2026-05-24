@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import ssl
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -137,8 +138,8 @@ def _parse_ais_message(msg: dict) -> dict[str, Any] | None:
             "longitude": data.get("Longitude") or vessel["longitude"],
         })
 
-    elif msg_type == "StandardClassBCSStaticAndVoyageRelatedData":
-        data = msg.get("Message", {}).get("StandardClassBCSStaticAndVoyageRelatedData", {})
+    elif msg_type == "StaticDataReport":
+        data = msg.get("Message", {}).get("StaticDataReport", {})
         name = data.get("Name", "").strip()
         if name:
             vessel["name"] = name
@@ -213,6 +214,7 @@ class AISCoordinator(DataUpdateCoordinator):
         self.vessels: dict[str, dict[str, Any]] = {}
         self._ws_task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
+        self._viewport_bbox: list | None = None
 
     # ------------------------------------------------------------------
     # DataUpdateCoordinator hook — called once on setup and on interval
@@ -222,6 +224,12 @@ class AISCoordinator(DataUpdateCoordinator):
             self._ws_task = self.hass.async_create_background_task(
                 self._ws_loop(), "ais_tracker_ws"
             )
+        now = time.monotonic()
+        stale = [m for m, v in self.vessels.items()
+                 if now - v.get("last_seen", now) > VESSEL_TIMEOUT_SECONDS]
+        for m in stale:
+            _LOGGER.debug("Schiff %s entfernt (Timeout)", m)
+            del self.vessels[m]
         return self.vessels
 
     # ------------------------------------------------------------------
@@ -287,22 +295,29 @@ class AISCoordinator(DataUpdateCoordinator):
                 [bbox.get("min_lat", -90), bbox.get("min_lon", -180)],
                 [bbox.get("max_lat", 90), bbox.get("max_lon", 180)],
             ]]
+        elif self._viewport_bbox:
+            # Dynamic viewport set by map card
+            bounding_boxes = self._viewport_bbox
         else:
-            # LIST and GLOBAL: world-wide — MMSI filtering done in _merge_vessel
+            # LIST and GLOBAL without viewport: world-wide
             bounding_boxes = [[[-90, -180], [90, 180]]]
 
         msg: dict[str, Any] = {
             "APIKey": api_key,
-            "MessageTypes": [
+            "BoundingBoxes": bounding_boxes,
+            "FilterMessageTypes": [
                 "PositionReport",
                 "ShipStaticData",
                 "StandardClassBPositionReport",
                 "ExtendedClassBPositionReport",
-                "StandardClassBCSStaticAndVoyageRelatedData",
-                "LongRangeAISBroadcastMessage",
+                "StaticDataReport",
+                "LongRangeAisBroadcastMessage",
             ],
-            "BoundingBoxes": bounding_boxes,
         }
+
+        if mode == FLEET_MODE_LIST:
+            vessels = self.entry.data.get(CONF_VESSELS, [])
+            msg["FiltersShipMMSI"] = [str(v["mmsi"]) for v in vessels]
 
         _LOGGER.debug("AISstream subscribe: %s", {k: v for k, v in msg.items() if k != "APIKey"})
         return msg
@@ -320,6 +335,7 @@ class AISCoordinator(DataUpdateCoordinator):
         if mmsi not in self.vessels:
             self.vessels[mmsi] = {}
         self.vessels[mmsi].update({k: v for k, v in update.items() if v is not None})
+        self.vessels[mmsi]["last_seen"] = time.monotonic()
         custom = next(
             (v["custom_name"] for v in self.entry.data.get(CONF_VESSELS, [])
              if str(v["mmsi"]) == mmsi and v.get("custom_name")),
@@ -328,6 +344,19 @@ class AISCoordinator(DataUpdateCoordinator):
         if custom:
             self.vessels[mmsi]["name"] = custom
         self.async_set_updated_data(self.vessels)
+
+    # ------------------------------------------------------------------
+    # Dynamic viewport (called from map card via HA service)
+    # ------------------------------------------------------------------
+    def update_viewport(self, min_lat: float, min_lon: float, max_lat: float, max_lon: float) -> None:
+        """Update subscription bounding box to current map viewport and reconnect."""
+        self._viewport_bbox = [[[min_lat, min_lon], [max_lat, max_lon]]]
+        _LOGGER.debug("Viewport aktualisiert: %s", self._viewport_bbox)
+        if self._ws_task and not self._ws_task.done():
+            self._ws_task.cancel()
+        self._ws_task = self.hass.async_create_background_task(
+            self._ws_loop(), "ais_tracker_ws"
+        )
 
     # ------------------------------------------------------------------
     # Fleet management (called from config flow options)

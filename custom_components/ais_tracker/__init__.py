@@ -4,10 +4,11 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import voluptuous as vol
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 
 from .const import DOMAIN
 from .coordinator import AISCoordinator
@@ -21,6 +22,14 @@ _FRONTEND_FILE = Path(__file__).parent / "frontend" / "ais-map-card.js"
 _CACHE_TAG = int(_FRONTEND_FILE.stat().st_mtime)
 
 
+_VIEWPORT_SCHEMA = vol.Schema({
+    vol.Required("min_lat"): vol.Coerce(float),
+    vol.Required("min_lon"): vol.Coerce(float),
+    vol.Required("max_lat"): vol.Coerce(float),
+    vol.Required("max_lon"): vol.Coerce(float),
+})
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     _LOGGER.info("AIS Ship Tracker wird gestartet")
     _base = Path(__file__).parent / "frontend"
@@ -31,6 +40,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         StaticPathConfig("/ais_tracker/icon.svg",    str(Path(__file__).parent / "icon.svg"), cache_headers=True),
     ])
     add_extra_js_url(hass, f"{_FRONTEND_URL}?v={_CACHE_TAG}")
+
+    async def _handle_update_viewport(call: ServiceCall) -> None:
+        for coordinator in hass.data.get(DOMAIN, {}).values():
+            if isinstance(coordinator, AISCoordinator):
+                coordinator.update_viewport(
+                    call.data["min_lat"],
+                    call.data["min_lon"],
+                    call.data["max_lat"],
+                    call.data["max_lon"],
+                )
+
+    hass.services.async_register(DOMAIN, "update_viewport", _handle_update_viewport, schema=_VIEWPORT_SCHEMA)
     return True
 
 

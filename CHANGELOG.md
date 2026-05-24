@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.19
+### Added
+- **Dynamic viewport subscription**: the map card automatically updates the AIS subscription bounding box to match the currently visible map area. Panning or zooming the map fetches ships in the new area. Works in GLOBAL and LIST mode; REGION mode keeps its configured bounding box.
+- Stale vessel cleanup: vessels not seen for 10 minutes are automatically removed from tracking.
+### Fixed
+- `StaticDataReport` (Class B Type 24 static data) is now correctly parsed — the previous handler used the wrong AISstream message key and silently discarded all Class B vessel names and callsigns.
+
 ## v1.0.18
 ### Fixed
 - Removed server-side MMSI filter from WebSocket subscription — AISstream drops the connection when the `MMSI` field is present (not supported on free tier). MMSI filtering for LIST mode is now done in the integration code instead.

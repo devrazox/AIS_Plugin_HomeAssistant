@@ -108,6 +108,8 @@ class AisMapCard extends HTMLElement {
     this._ready = false;
     this._hass = null;
     this._config = {};
+    this._programmaticMove = false;
+    this._viewportTimer = null;
   }
 
   setConfig(config) {
@@ -151,11 +153,36 @@ class AisMapCard extends HTMLElement {
     L.tileLayer(OSM_TILE,  { attribution: OSM_ATTR,  maxZoom: 19 }).addTo(this._map);
     L.tileLayer(OSEA_TILE, { attribution: OSEA_ATTR, maxZoom: 19, opacity: 1 }).addTo(this._map);
 
+    this._map.on("moveend", () => {
+      if (this._programmaticMove) { this._programmaticMove = false; return; }
+      this._scheduleViewportUpdate();
+    });
+    this._map.on("zoomend", () => this._scheduleViewportUpdate());
+
     // Shadow DOM container size is unknown to Leaflet on first render
-    setTimeout(() => this._map.invalidateSize(), 100);
+    setTimeout(() => {
+      this._map.invalidateSize();
+      this._sendViewport();
+    }, 200);
 
     this._ready = true;
     if (this._hass) this._updateMarkers();
+  }
+
+  _scheduleViewportUpdate() {
+    clearTimeout(this._viewportTimer);
+    this._viewportTimer = setTimeout(() => this._sendViewport(), 3000);
+  }
+
+  _sendViewport() {
+    if (!this._map || !this._hass) return;
+    const b = this._map.getBounds();
+    this._hass.callService("ais_tracker", "update_viewport", {
+      min_lat: b.getSouth(),
+      min_lon: b.getWest(),
+      max_lat: b.getNorth(),
+      max_lon: b.getEast(),
+    });
   }
 
   _followPosition() {
@@ -217,9 +244,12 @@ class AisMapCard extends HTMLElement {
       }
     }
 
-    // Follow mode: pan to ship on every update
+    // Follow mode: pan to ship on every update (flag prevents viewport subscription update)
     const followPos = this._followPosition();
-    if (followPos) this._map.panTo(followPos);
+    if (followPos) {
+      this._programmaticMove = true;
+      this._map.panTo(followPos);
+    }
   }
 
   getCardSize() {

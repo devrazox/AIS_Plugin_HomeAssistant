@@ -236,7 +236,12 @@ class AISCoordinator(DataUpdateCoordinator):
 
         while not self._stop_event.is_set():
             try:
-                async with websockets.connect(AISSTREAM_WS_URL, ssl=ssl_context) as ws:
+                async with websockets.connect(
+                    AISSTREAM_WS_URL,
+                    ssl=ssl_context,
+                    ping_interval=None,
+                    ping_timeout=None,
+                ) as ws:
                     await ws.send(json.dumps(subscribe_msg))
                     _LOGGER.info("AISstream WebSocket verbunden")
                     async for raw in ws:
@@ -265,20 +270,24 @@ class AISCoordinator(DataUpdateCoordinator):
         api_key = self.entry.data[CONF_API_KEY]
         mode = self.entry.data.get(CONF_FLEET_MODE, FLEET_MODE_GLOBAL)
 
+        _filter_types = [
+            "PositionReport",
+            "ShipStaticData",
+            "StandardClassBPositionReport",
+            "ExtendedClassBPositionReport",
+            "StandardClassBCSStaticAndVoyageRelatedData",
+            "LongRangeAISBroadcastMessage",
+        ]
+
         msg: dict[str, Any] = {
             "APIKey": api_key,
-            "FilterMessageTypes": [
-                "PositionReport",
-                "ShipStaticData",
-                "StandardClassBPositionReport",
-                "ExtendedClassBPositionReport",
-                "StandardClassBCSStaticAndVoyageRelatedData",
-                "LongRangeAISBroadcastMessage",
-            ],
+            "FilterMessageTypes": _filter_types,
         }
 
         if mode == FLEET_MODE_LIST:
             vessels = self.entry.data.get(CONF_VESSELS, [])
+            # AISstream requires BoundingBoxes even when filtering by MMSI
+            msg["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
             msg["MMSI"] = [int(v["mmsi"]) for v in vessels]
 
         elif mode == FLEET_MODE_REGION:
@@ -288,8 +297,11 @@ class AISCoordinator(DataUpdateCoordinator):
                 [bbox.get("max_lat", 90), bbox.get("max_lon", 180)],
             ]]
 
-        # FLEET_MODE_GLOBAL: no BoundingBoxes / MMSI filter, receive all ships
+        else:
+            # GLOBAL: subscribe worldwide
+            msg["BoundingBoxes"] = [[[-90, -180], [90, 180]]]
 
+        _LOGGER.debug("AISstream subscribe: %s", {k: v for k, v in msg.items() if k != "APIKey"})
         return msg
 
     def _merge_vessel(self, update: dict[str, Any]) -> None:
